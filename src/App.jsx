@@ -6,6 +6,53 @@ const questions = [
   { type: 'Technical', title: 'How would you make a service resilient when a dependency is slow?', helper: 'Probe for trade-offs around timeouts, retries, and observability.' },
 ]
 
+const languageTemplates = {
+  JavaScript: `function maxSubarraySum(numbers) {
+  let best = numbers[0]
+  let current = numbers[0]
+
+  for (const number of numbers.slice(1)) {
+    current = Math.max(number, current + number)
+    best = Math.max(best, current)
+  }
+
+  return best
+}`,
+  Python: `def max_subarray_sum(numbers):
+    best = numbers[0]
+    current = numbers[0]
+
+    for number in numbers[1:]:
+        current = max(number, current + number)
+        best = max(best, current)
+
+    return best`,
+  TypeScript: `function maxSubarraySum(numbers: number[]): number {
+  let best = numbers[0]
+  let current = numbers[0]
+
+  for (const number of numbers.slice(1)) {
+    current = Math.max(number, current + number)
+    best = Math.max(best, current)
+  }
+
+  return best
+}`,
+  Java: `class Solution {
+    public int maxSubarraySum(int[] numbers) {
+        int best = numbers[0];
+        int current = numbers[0];
+
+        for (int index = 1; index < numbers.length; index++) {
+            current = Math.max(numbers[index], current + numbers[index]);
+            best = Math.max(best, current);
+        }
+
+        return best;
+    }
+}`,
+}
+
 const initialEvents = [
   { time: '10:42:18', text: 'Candidate joined session', tone: 'good' },
   { time: '10:43:02', text: 'Face verified · 1 person detected', tone: 'good' },
@@ -159,7 +206,7 @@ function CandidateLogin({ onContinue }) {
 
 function InterviewCard({ currentQuestion, questionIndex, started, startSession, nextQuestion, addEvent }) { return <div className="panel agent-panel"><div className="panel-heading"><span>AI INTERVIEWER</span><span className="model-label"><span className="tiny-spark">✦</span> NOVA / ADAPTIVE MODE</span></div><div className="agent-body"><div className="agent-visual"><div className="agent-orbit orbit-one"></div><div className="agent-orbit orbit-two"></div><div className="agent-core">✦</div><div className="sound-bars"><i></i><i></i><i></i><i></i><i></i></div></div><div className="agent-copy"><span className="question-type">QUESTION {questionIndex + 1} OF 2 <b>·</b> {currentQuestion.type.toUpperCase()}</span><h2>{currentQuestion.title}</h2><p>{currentQuestion.helper}</p><div className="agent-controls"><button className="primary-button" type="button" onClick={started ? nextQuestion : startSession}>{started ? questionIndex === 1 ? 'Open coding round' : 'Ask next question' : 'Start interview'}<span>→</span></button><button className="secondary-button" type="button" onClick={() => addEvent('Question marked for review', 'warning')}>Flag question</button></div></div></div><div className="waveform" aria-label="Audio activity visualization">{Array.from({ length: 46 }, (_, index) => <i key={index} style={{ height: `${12 + ((index * 17) % 35)}%` }}></i>)}</div></div> }
 
-function CodeCard({ started, language, setLanguage, code, setCode, addEvent, runCode, isRunning, finishTest }) { return <div className="panel code-panel"><div className="panel-heading"><span>CODING ROUND <span className="heading-muted">/ TWO SUM VARIANT</span></span><span className="timer"><span className="timer-dot"></span> 24:18 remaining</span></div><div className="challenge-copy"><div><h2>Maximum subarray sum</h2><p>Return the largest possible sum of a contiguous subarray. Aim for O(n) time complexity.</p></div><div className="difficulty">MEDIUM</div></div><div className="editor-toolbar"><label htmlFor="language">Language</label><select id="language" value={language} onChange={(event) => { setLanguage(event.target.value); addEvent(`${event.target.value} selected for coding round`) }}><option>JavaScript</option><option>Python</option><option>TypeScript</option><option>Java</option></select><span className="editor-spacer"></span><span className="test-status"><span className="status-dot"></span> 3 sample tests</span><button type="button" className="run-button" onClick={runCode}>{isRunning ? 'Running...' : 'Run code'} <span>▷</span></button></div><textarea className="code-editor" spellCheck="false" value={code} onChange={(event) => setCode(event.target.value)} aria-label="Coding editor"></textarea><div className={`console ${isRunning ? 'running' : ''}`}><span>CONSOLE</span><p>{isRunning ? 'Running sample tests...' : '✓ All 3 sample tests passed  ·  Runtime 42ms  ·  Memory 48.2 MB'}</p></div>{started && <button type="button" className="finish-button" onClick={finishTest}>Submit assessment <span>→</span></button>}</div> }
+function CodeCard({ started, language, setLanguage, code, setCode, addEvent, runCode, isRunning, finishTest }) { return <div className="panel code-panel"><div className="panel-heading"><span>CODING ROUND <span className="heading-muted">/ TWO SUM VARIANT</span></span><span className="timer"><span className="timer-dot"></span> 24:18 remaining</span></div><div className="challenge-copy"><div><h2>Maximum subarray sum</h2><p>Return the largest possible sum of a contiguous subarray. Aim for O(n) time complexity.</p></div><div className="difficulty">MEDIUM</div></div><div className="test-suite"><div className="test-suite-heading"><span>TEST CASES</span><span>2 visible <i>·</i> 6 hidden</span></div><div className="test-cases"><div className="test-case"><span className="case-number">01</span><div className="case-values"><span><b>Input</b><code>[-2, 1, -3, 4, -1, 2, 1]</code></span><span><b>Output</b><strong>5</strong></span></div></div><div className="test-case"><span className="case-number">02</span><div className="case-values"><span><b>Input</b><code>[5, 4, -1, 7, 8]</code></span><span><b>Output</b><strong>23</strong></span></div></div><div className="hidden-cases"><span className="lock-icon">⌑</span><span>6 hidden test cases</span><small>Used for final evaluation</small></div></div></div><div className="editor-toolbar"><label htmlFor="language">Language</label><select id="language" value={language} onChange={(event) => { const nextLanguage = event.target.value; setLanguage(nextLanguage); setCode(languageTemplates[nextLanguage]); addEvent(`${nextLanguage} selected for coding round`) }}><option>JavaScript</option><option>Python</option><option>TypeScript</option><option>Java</option></select><span className="editor-spacer"></span><span className="test-status"><span className="status-dot"></span> 2 visible · 6 hidden</span><button type="button" className="run-button" onClick={runCode}>{isRunning ? 'Running...' : 'Run code'} <span>▷</span></button></div><textarea className="code-editor" spellCheck="false" value={code} onChange={(event) => setCode(event.target.value)} aria-label="Coding editor"></textarea><div className={`console ${isRunning ? 'running' : ''}`}><span>CONSOLE</span><p>{isRunning ? 'Running 2 visible + 6 hidden tests...' : '✓ 2 visible tests passed  ·  6 hidden tests queued  ·  Runtime 42ms'}</p></div>{started && <button type="button" className="finish-button" onClick={finishTest}>Submit assessment <span>→</span></button>}</div> }
 
 function MonitorPanel({ setActiveView }) { return <div className="panel monitor-panel"><div className="panel-heading"><span>PROCTORING</span><button className="expand-button" type="button" onClick={() => setActiveView('Proctoring')}>View full report ↗</button></div><div className="camera-frame"><div className="camera-label"><span className="record-dot"></span> LIVE CAMERA</div><div className="face-box"><span>FACE DETECTED</span></div><div className="camera-person"><div className="person-head"></div><div className="person-body"></div></div><div className="camera-footer"><span>1 person</span><span>Good lighting</span><span>◉ 98%</span></div></div><div className="signal-list"><Signal label="Camera monitoring" value="Clear" /><Signal label="Face detection" value="1 person" /><Signal label="Gaze / head pose" value="Focused" /><Signal label="Audio monitoring" value="No anomalies" /><Signal label="Screen activity" value="Stable" /></div></div> }
 function ActivityPanel({ events }) { return <div className="panel activity-panel"><div className="panel-heading"><span>ACTIVITY LOG</span><span className="live-text">LIVE</span></div><div className="event-list">{events.slice(0, 4).map((event, index) => <div className="event" key={`${event.time}-${index}`}><span className={`event-marker ${event.tone}`}></span><div><p>{event.text}</p><small>{event.time}</small></div></div>)}</div></div> }
