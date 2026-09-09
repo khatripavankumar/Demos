@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 
-const questions = [
-  { type: 'Behavioral', title: 'Tell me about a time you had to change direction quickly.', helper: 'Look for context, ownership, and the result of the decision.' },
-  { type: 'Technical', title: 'How would you make a service resilient when a dependency is slow?', helper: 'Probe for trade-offs around timeouts, retries, and observability.' },
-]
-
 const languageTemplates = {
   JavaScript: `function maxSubarraySum(numbers) {
   let best = numbers[0]
@@ -61,10 +56,11 @@ const initialEvents = [
 
 function App() {
   const [candidateAuthenticated, setCandidateAuthenticated] = useState(false)
+  const [resumeUploaded, setResumeUploaded] = useState(false)
   const [candidateStage, setCandidateStage] = useState('dashboard')
   const [showSettings, setShowSettings] = useState(false)
+  const [interviewQuestionIndex, setInterviewQuestionIndex] = useState(0)
   const [activeView, setActiveView] = useState('Overview')
-  const [questionIndex, setQuestionIndex] = useState(0)
   const [started, setStarted] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
@@ -89,28 +85,40 @@ function App() {
     return () => clearInterval(timer)
   }, [started, completed])
 
-  const currentQuestion = questions[questionIndex]
   const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0')
   const seconds = String(elapsed % 60).padStart(2, '0')
 
   if (!candidateAuthenticated) {
-    return <CandidateLogin onContinue={() => { setCandidateAuthenticated(true); setCandidateStage('dashboard') }} />
+    return <CandidateLogin onContinue={() => { setCandidateAuthenticated(true); setResumeUploaded(false); setCandidateStage('resume') }} />
+  }
+
+  if (!resumeUploaded) {
+    return <ResumeUpload onUpload={() => { setResumeUploaded(true); setCandidateStage('interview') }} />
   }
 
   if (candidateStage === 'dashboard') {
-    return <CandidateDashboard showSettings={showSettings} setShowSettings={setShowSettings} onStart={() => setCandidateStage('interview')} onLogout={() => { setCandidateAuthenticated(false); setShowSettings(false) }} />
+    return <CandidateDashboard showSettings={showSettings} setShowSettings={setShowSettings} onStart={() => setCandidateStage('interview')} onLogout={() => { setCandidateAuthenticated(false); setResumeUploaded(false); setShowSettings(false) }} />
   }
 
   function addEvent(text, tone = 'good') {
     setEvents((items) => [{ time: `${minutes}:${seconds}`, text, tone }, ...items])
   }
 
-  function startSession() { setStarted(true); addEvent('AI interviewer is now live') }
+  function startSession() {
+    setStarted(true)
+    const question = interviewQuestions[interviewQuestionIndex]
+    addEvent(`Nova started ${question.category} question ${interviewQuestionIndex + 1}`)
+  }
 
   function nextQuestion() {
-    if (questionIndex < questions.length - 1) {
-      setQuestionIndex((value) => value + 1); addEvent('Technical question queued'); setActiveView('Interview')
-    } else { setActiveView('Code challenge'); addEvent('Coding challenge unlocked') }
+    const nextIndex = interviewQuestionIndex + 1
+    if (nextIndex < interviewQuestions.length) {
+      setInterviewQuestionIndex(nextIndex)
+      addEvent(`Nova queued ${interviewQuestions[nextIndex].category} question ${nextIndex + 1}`)
+      return
+    }
+    setActiveView('Code challenge')
+    addEvent('Coding challenge unlocked')
   }
 
   function runCode() {
@@ -137,8 +145,38 @@ function App() {
       <main className="main-content">
         <header className="topbar"><div><div className="eyebrow">LIVE ASSESSMENT / SOFTWARE ENGINEERING</div><h1>{activeView === 'Report' ? 'Assessment report' : 'Maya Chen’s technical screen'}</h1></div><div className="topbar-actions"><span className={`live-chip ${started && !completed ? 'is-live' : ''}`}><span className="chip-dot"></span>{completed ? 'Session complete' : started ? 'Session live' : 'Ready to begin'}</span><button className="icon-button" type="button" title="Open notifications">♧</button><button className="icon-button" type="button" title="More actions">•••</button></div></header>
 
-        {activeView === 'Report' ? <ReportView /> : <><section className="candidate-strip"><div className="candidate-info"><div className="candidate-avatar">MC</div><div><h2>Maya Chen</h2><p>Senior Frontend Engineer <span>·</span> Candidate #NS-2048</p></div></div><div className="strip-stats"><div><span>STAGE</span><strong>{completed ? 'Complete' : started ? 'In progress' : 'Not started'}</strong></div><div><span>TIME ELAPSED</span><strong className="mono">{minutes}:{seconds}</strong></div><div><span>AGENT</span><strong className="agent-name"><span className="agent-avatar">✦</span> Nova</strong></div></div></section><div className="content-grid"><section className="primary-column">{(activeView === 'Overview' || activeView === 'Interview') && <InterviewCard currentQuestion={currentQuestion} questionIndex={questionIndex} started={started} startSession={startSession} nextQuestion={nextQuestion} addEvent={addEvent} />}{activeView === 'Code challenge' && <CodeCard started={started} language={language} setLanguage={setLanguage} code={code} setCode={setCode} addEvent={addEvent} runCode={runCode} isRunning={isRunning} finishTest={finishTest} />}{activeView === 'Proctoring' && <Proctoring events={events} addEvent={addEvent} />}</section><aside className="right-column"><MonitorPanel setActiveView={setActiveView} /><ActivityPanel events={events} /></aside></div></>}
+        {activeView === 'Report' ? <ReportView /> : <><section className="candidate-strip"><div className="candidate-info"><div className="candidate-avatar">MC</div><div><h2>Maya Chen</h2><p>Senior Frontend Engineer <span>·</span> Candidate #NS-2048</p></div></div><div className="strip-stats"><div><span>STAGE</span><strong>{completed ? 'Complete' : started ? 'In progress' : 'Not started'}</strong></div><div><span>TIME ELAPSED</span><strong className="mono">{minutes}:{seconds}</strong></div><div><span>AGENT</span><strong className="agent-name"><span className="agent-avatar">✦</span> Nova</strong></div></div></section><div className="content-grid"><section className="primary-column">{(activeView === 'Overview' || activeView === 'Interview') && <InterviewCard started={started} startSession={startSession} nextQuestion={nextQuestion} />}{activeView === 'Code challenge' && <CodeCard started={started} language={language} setLanguage={setLanguage} code={code} setCode={setCode} addEvent={addEvent} runCode={runCode} isRunning={isRunning} finishTest={finishTest} />}{activeView === 'Proctoring' && <Proctoring events={events} addEvent={addEvent} />}</section><aside className="right-column"><MonitorPanel setActiveView={setActiveView} /><ActivityPanel events={events} /></aside></div></>}
       </main>
+    </div>
+  )
+}
+
+function ResumeUpload({ onUpload }) {
+  const [fileName, setFileName] = useState('')
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+
+  function handleSubmit(event) {
+    event.preventDefault()
+    if (!fileName) return
+    setIsAnalyzing(true)
+    window.setTimeout(onUpload, 900)
+  }
+
+  return (
+    <div className="resume-page">
+      <header className="login-header"><div className="brand"><span className="brand-mark">s</span><span>signal<span className="brand-dot">.</span></span></div><span className="secure-label"><span className="secure-dot"></span> Secure candidate portal</span></header>
+      <main className="resume-main">
+        <div className="resume-step"><span>STEP 2 <i>/</i> 3</span><div><b></b><b className="active"></b><b></b></div></div>
+        <div className="eyebrow">PROFILE CONTEXT / RESUME ANALYSIS</div>
+        <h1>Bring your experience<br /><em>to the conversation.</em></h1>
+        <p className="resume-intro">Nova will use your resume to tailor the interview to your skills, projects, and experience.</p>
+        <form className="resume-card" onSubmit={handleSubmit}>
+          <label className={`resume-dropzone ${fileName ? 'has-file' : ''}`} htmlFor="resume-file"><span className="upload-icon">↑</span><strong>{fileName || 'Drop your resume here'}</strong><small>{fileName ? 'Ready for analysis' : 'PDF, DOC, or DOCX · Max 10 MB'}</small><input id="resume-file" type="file" accept=".pdf,.doc,.docx" onChange={(event) => setFileName(event.target.files?.[0]?.name || '')} /></label>
+          <div className="resume-actions"><span><span className="privacy-icon">⌁</span> Your resume stays private</span><button className="login-button" type="submit" disabled={!fileName || isAnalyzing}>{isAnalyzing ? 'Preparing interview...' : 'Start the interview'} <span>→</span></button></div>
+        </form>
+        <p className="resume-skip">Your resume helps Nova ask better questions during the interview.</p>
+      </main>
+      <footer className="login-footer"><span>© 2026 Signal interviews</span><span>Privacy <i>·</i> Candidate support</span></footer>
     </div>
   )
 }
@@ -167,7 +205,7 @@ function CandidateDashboard({ showSettings, setShowSettings, onStart, onLogout }
 function CandidateLogin({ onContinue }) {
   const [name, setName] = useState('Maya Chen')
   const [email, setEmail] = useState('maya.chen@example.com')
-  const [accessCode, setAccessCode] = useState('NORTHSTAR-2048')
+  const [password, setPassword] = useState('Northstar2026')
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -187,13 +225,13 @@ function CandidateLogin({ onContinue }) {
           <p>Complete a guided interview with Nova, then show us how you think in a live coding round.</p>
         </section>
         <section className="login-card" aria-labelledby="login-title">
-          <div className="login-card-top"><div className="login-orb"><span>✦</span></div><span className="step-label">STEP 1 <i>/</i> 3</span></div>
+          <div className="login-card-top"><span className="step-label">STEP 1 <i>/</i> 3</span></div>
           <h2 id="login-title">Enter your invitation</h2>
           <p className="login-card-copy">Use the details from your interview invite to securely join the session.</p>
           <form onSubmit={handleSubmit}>
             <label htmlFor="candidate-name">Full name<input id="candidate-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" required /></label>
             <label htmlFor="candidate-email">Email address<input id="candidate-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label>
-            <label htmlFor="access-code">Access code<input id="access-code" value={accessCode} onChange={(event) => setAccessCode(event.target.value)} required /><small>Found in your Northstar interview invitation</small></label>
+            <label htmlFor="candidate-password">Password<input id="candidate-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>
             <button className="login-button" type="submit">Continue to setup <span>→</span></button>
           </form>
           <div className="login-note"><span>⌁</span><p>Your camera and microphone will be checked before the interview begins.</p></div>
@@ -204,7 +242,7 @@ function CandidateLogin({ onContinue }) {
   )
 }
 
-function InterviewCard({ currentQuestion, questionIndex, started, startSession, nextQuestion, addEvent }) { return <div className="panel agent-panel"><div className="panel-heading"><span>AI INTERVIEWER</span><span className="model-label"><span className="tiny-spark">✦</span> NOVA / ADAPTIVE MODE</span></div><div className="agent-body"><div className="agent-visual"><div className="agent-orbit orbit-one"></div><div className="agent-orbit orbit-two"></div><div className="agent-core">✦</div><div className="sound-bars"><i></i><i></i><i></i><i></i><i></i></div></div><div className="agent-copy"><span className="question-type">QUESTION {questionIndex + 1} OF 2 <b>·</b> {currentQuestion.type.toUpperCase()}</span><h2>{currentQuestion.title}</h2><p>{currentQuestion.helper}</p><div className="agent-controls"><button className="primary-button" type="button" onClick={started ? nextQuestion : startSession}>{started ? questionIndex === 1 ? 'Open coding round' : 'Ask next question' : 'Start interview'}<span>→</span></button><button className="secondary-button" type="button" onClick={() => addEvent('Question marked for review', 'warning')}>Flag question</button></div></div></div><div className="waveform" aria-label="Audio activity visualization">{Array.from({ length: 46 }, (_, index) => <i key={index} style={{ height: `${12 + ((index * 17) % 35)}%` }}></i>)}</div></div> }
+function InterviewCard({ started, startSession, nextQuestion }) { return <div className="panel agent-panel"><div className="panel-heading"><span>AI INTERVIEWER</span><span className="model-label"><span className="tiny-spark">✦</span> NOVA / VOICE MODE</span></div><div className="agent-body voice-only-body"><div className="waveform voice-waveform" aria-label="Live voice waveform">{Array.from({ length: 46 }, (_, index) => <i key={index} style={{ height: `${12 + ((index * 17) % 35)}%` }}></i>)}</div><div className="agent-visual"><div className="agent-orbit orbit-one"></div><div className="agent-orbit orbit-two"></div><div className="agent-core">✦</div><div className="sound-bars"><i></i><i></i><i></i><i></i><i></i></div></div><div className="agent-copy voice-only-copy"><div className="agent-controls"><button className="primary-button" type="button" onClick={() => { if (!started) startSession(); nextQuestion() }}>Continue to coding round<span>→</span></button></div></div></div></div> }
 
 function CodeCard({ started, language, setLanguage, code, setCode, addEvent, runCode, isRunning, finishTest }) { return <div className="panel code-panel"><div className="panel-heading"><span>CODING ROUND <span className="heading-muted">/ TWO SUM VARIANT</span></span><span className="timer"><span className="timer-dot"></span> 24:18 remaining</span></div><div className="challenge-copy"><div><h2>Maximum subarray sum</h2><p>Return the largest possible sum of a contiguous subarray. Aim for O(n) time complexity.</p></div><div className="difficulty">MEDIUM</div></div><div className="test-suite"><div className="test-suite-heading"><span>TEST CASES</span><span>2 visible <i>·</i> 6 hidden</span></div><div className="test-cases"><div className="test-case"><span className="case-number">01</span><div className="case-values"><span><b>Input</b><code>[-2, 1, -3, 4, -1, 2, 1]</code></span><span><b>Output</b><strong>5</strong></span></div></div><div className="test-case"><span className="case-number">02</span><div className="case-values"><span><b>Input</b><code>[5, 4, -1, 7, 8]</code></span><span><b>Output</b><strong>23</strong></span></div></div><div className="hidden-cases"><span className="lock-icon">⌑</span><span>6 hidden test cases</span><small>Used for final evaluation</small></div></div></div><div className="editor-toolbar"><label htmlFor="language">Language</label><select id="language" value={language} onChange={(event) => { const nextLanguage = event.target.value; setLanguage(nextLanguage); setCode(languageTemplates[nextLanguage]); addEvent(`${nextLanguage} selected for coding round`) }}><option>JavaScript</option><option>Python</option><option>TypeScript</option><option>Java</option></select><span className="editor-spacer"></span><span className="test-status"><span className="status-dot"></span> 2 visible · 6 hidden</span><button type="button" className="run-button" onClick={runCode}>{isRunning ? 'Running...' : 'Run code'} <span>▷</span></button></div><textarea className="code-editor" spellCheck="false" value={code} onChange={(event) => setCode(event.target.value)} aria-label="Coding editor"></textarea><div className={`console ${isRunning ? 'running' : ''}`}><span>CONSOLE</span><p>{isRunning ? 'Running 2 visible + 6 hidden tests...' : '✓ 2 visible tests passed  ·  6 hidden tests queued  ·  Runtime 42ms'}</p></div>{started && <button type="button" className="finish-button" onClick={finishTest}>Submit assessment <span>→</span></button>}</div> }
 
