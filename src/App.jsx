@@ -93,7 +93,7 @@ function App() {
   }
 
   if (!resumeUploaded) {
-    return <ResumeUpload onUpload={() => { setResumeUploaded(true); setCandidateStage('interview') }} />
+    return <ResumeUpload onUpload={() => { setResumeUploaded(true); setCandidateStage('interview') }} onLogout={() => { setCandidateAuthenticated(false); setResumeUploaded(false); setShowSettings(false) }} />
   }
 
   if (candidateStage === 'dashboard') {
@@ -111,12 +111,6 @@ function App() {
   }
 
   function nextQuestion() {
-    const nextIndex = interviewQuestionIndex + 1
-    if (nextIndex < interviewQuestions.length) {
-      setInterviewQuestionIndex(nextIndex)
-      addEvent(`Nova queued ${interviewQuestions[nextIndex].category} question ${nextIndex + 1}`)
-      return
-    }
     setActiveView('Code challenge')
     addEvent('Coding challenge unlocked')
   }
@@ -151,9 +145,10 @@ function App() {
   )
 }
 
-function ResumeUpload({ onUpload }) {
+function ResumeUpload({ onUpload, onLogout }) {
   const [fileName, setFileName] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -164,7 +159,7 @@ function ResumeUpload({ onUpload }) {
 
   return (
     <div className="resume-page">
-      <header className="login-header"><div className="brand"><span className="brand-mark">s</span><span>signal<span className="brand-dot">.</span></span></div><span className="secure-label"><span className="secure-dot"></span> Secure candidate portal</span></header>
+      <header className="login-header"><div className="resume-header-left"><div className="brand"><span className="brand-mark">s</span><span>signal<span className="brand-dot">.</span></span></div><div className="profile-menu-wrap"><button type="button" className="resume-profile-button" aria-label="Open profile menu" aria-expanded={profileMenuOpen} onClick={() => setProfileMenuOpen((value) => !value)}><span className="resume-profile-avatar">MC</span><span className="profile-caret">⌄</span></button>{profileMenuOpen && <div className="resume-profile-menu" role="menu"><div className="resume-profile-summary"><span className="resume-profile-avatar large">MC</span><span><strong>Maya Chen</strong><small>Candidate #NS-2048</small></span></div><div className="profile-menu-divider"></div><button type="button" role="menuitem" onClick={() => setProfileMenuOpen(false)}>Profile</button><button type="button" role="menuitem" onClick={() => setProfileMenuOpen(false)}>Settings</button><button type="button" role="menuitem" className="profile-menu-logout" onClick={onLogout}>Log out</button></div>}</div></div><span className="secure-label"><span className="secure-dot"></span> Secure candidate portal</span></header>
       <main className="resume-main">
         <div className="resume-step"><span>STEP 2 <i>/</i> 3</span><div><b></b><b className="active"></b><b></b></div></div>
         <div className="eyebrow">PROFILE CONTEXT / RESUME ANALYSIS</div>
