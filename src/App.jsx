@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import interviewQuestions from './data/interviewQuestions'
 
 const languageTemplates = {
   JavaScript: `function maxSubarraySum(numbers) {
@@ -53,13 +54,14 @@ const initialEvents = [
   { time: '10:43:02', text: 'Face verified · 1 person detected', tone: 'good' },
   { time: '10:43:14', text: 'Microphone and camera ready', tone: 'good' },
 ]
+const initialElapsed = 642
 
 function App() {
   const [candidateAuthenticated, setCandidateAuthenticated] = useState(false)
   const [resumeUploaded, setResumeUploaded] = useState(false)
   const [candidateStage, setCandidateStage] = useState('dashboard')
   const [showSettings, setShowSettings] = useState(false)
-  const [interviewQuestionIndex, setInterviewQuestionIndex] = useState(0)
+  const [interviewQuestionIndex] = useState(0)
   const [activeView, setActiveView] = useState('Overview')
   const [started, setStarted] = useState(false)
   const [completed, setCompleted] = useState(false)
@@ -77,16 +79,24 @@ function App() {
   return best
 }`)
   const [events, setEvents] = useState(initialEvents)
-  const [elapsed, setElapsed] = useState(642)
+  const elapsedRef = useRef(initialElapsed)
 
   useEffect(() => {
     if (!started || completed) return undefined
-    const timer = setInterval(() => setElapsed((value) => value + 1), 1000)
-    return () => clearInterval(timer)
-  }, [started, completed])
+    const timer = window.setInterval(() => {
+      elapsedRef.current += 1
+      const elapsedElement = document.querySelector('.candidate-strip .mono')
+      if (elapsedElement) {
+        const minutes = String(Math.floor(elapsedRef.current / 60)).padStart(2, '0')
+        const seconds = String(elapsedRef.current % 60).padStart(2, '0')
+        elapsedElement.textContent = `${minutes}:${seconds}`
+      }
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [completed, started])
 
-  const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0')
-  const seconds = String(elapsed % 60).padStart(2, '0')
+  const minutes = String(Math.floor(initialElapsed / 60)).padStart(2, '0')
+  const seconds = String(initialElapsed % 60).padStart(2, '0')
 
   if (!candidateAuthenticated) {
     return <CandidateLogin onContinue={() => { setCandidateAuthenticated(true); setResumeUploaded(false); setCandidateStage('resume') }} />
@@ -101,6 +111,8 @@ function App() {
   }
 
   function addEvent(text, tone = 'good') {
+    const minutes = String(Math.floor(elapsedRef.current / 60)).padStart(2, '0')
+    const seconds = String(elapsedRef.current % 60).padStart(2, '0')
     setEvents((items) => [{ time: `${minutes}:${seconds}`, text, tone }, ...items])
   }
 
